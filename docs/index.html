@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GDELT day sources</title>
+<style>
+:root{
+  color-scheme: light;
+  --plane:#f9f9f7; --surface:#fcfcfb;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --line:#e1e0d9; --axis:#c3c2b7;
+  --accent:#2a78d6; --node:#eb6834; --bar:#2a78d6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --line:#2c2c2a; --axis:#383835;
+    --accent:#3987e5; --node:#d95926; --bar:#3987e5;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --plane:#0d0d0d; --surface:#1a1a19;
+  --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+  --line:#2c2c2a; --axis:#383835;
+  --accent:#3987e5; --node:#d95926; --bar:#3987e5;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);color:var(--ink);
+  font:14px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px;padding-block:28px}
+h1{font-size:19px;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--ink-2);margin:0 0 18px;max-width:68ch}
+a{color:var(--accent)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-variant-numeric:tabular-nums}
+.bar{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+label{display:block;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:5px}
+input[type=date]{font:inherit;font-family:ui-monospace,monospace;padding:7px 9px;
+  border:1px solid var(--axis);border-radius:8px;background:var(--plane);color:var(--ink)}
+button{font:inherit;padding:7px 11px;border:1px solid var(--axis);border-radius:8px;
+  background:var(--plane);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  margin-bottom:16px}
+.tile{background:var(--surface);padding:12px 14px}
+.tile .k{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tile .v{font-size:18px;font-family:ui-monospace,monospace;margin-top:3px;letter-spacing:-.02em}
+ol{list-style:none;counter-reset:n;margin:0;padding:0}
+li{counter-increment:n;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:11px 13px 11px 40px;margin-bottom:7px;position:relative}
+li::before{content:counter(n);position:absolute;left:12px;top:11px;color:var(--muted);
+  font-family:ui-monospace,monospace;font-size:12px}
+li .d{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--muted);
+  display:flex;justify-content:space-between;gap:12px;margin-bottom:3px}
+li a{text-decoration:none;word-break:break-word;font-size:13.5px}
+li a:hover{text-decoration:underline}
+li .m{height:3px;border-radius:2px;background:var(--bar);margin-top:7px;opacity:.5}
+.msg{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:22px;color:var(--ink-2);text-align:center}
+.foot{color:var(--muted);font-size:12px;margin-top:22px;line-height:1.6}
+.foot code{font-family:ui-monospace,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>GDELT day sources</h1>
+<p class="sub">What GDELT was reading on a given day. Twenty-five links, ranked by how many
+articles carried the event, one per domain and one per path. The rule is the same for every day
+in the corpus — nothing here was chosen because it suited a position.</p>
+
+<div class="bar">
+  <div>
+    <label for="d">date</label>
+    <input type="date" id="d" min="2013-04-01" max="2026-09-20">
+  </div>
+  <div><label>&nbsp;</label><button id="pv">← day</button></div>
+  <div><label>&nbsp;</label><button id="nx">day →</button></div>
+</div>
+
+<div class="tiles" id="tiles" hidden>
+  <div class="tile"><div class="k">event rows</div><div class="v" id="tR">—</div></div>
+  <div class="tile"><div class="k">distinct URLs</div><div class="v" id="tU">—</div></div>
+  <div class="tile"><div class="k">shown</div><div class="v" id="tK">—</div></div>
+</div>
+
+<div id="out"></div>
+
+<p class="foot">
+  Source URLs live in column 58 of GDELT's daily export files and exist only from
+  <code>2013-04-01</code>. Before that the corpus carries counts but no links at all.
+  Rank is by <code>NumArticles</code> summed per URL; ties fall in corpus order.
+  <br>Positions come from
+  <a href="https://nth-member.github.io/revott/" target="_blank" rel="noopener noreferrer">nth-member/revott</a>,
+  which turns a REVOTT coordinate into a date and reads how much GDELT recorded there.
+</p>
+
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const LO="2013-04-01", HI="2026-09-20";
+const fmt=n=>n==null?"—":n.toLocaleString();
+
+function qsDate(){
+  const q=new URLSearchParams(location.search).get("date");
+  return /^\d{4}-\d{2}-\d{2}$/.test(q||"") ? q : "2021-09-26";
+}
+function shift(iso,d){
+  const t=Date.parse(iso+"T00:00:00Z")+d*86400000;
+  return new Date(t).toISOString().slice(0,10);
+}
+function go(iso,push){
+  if(iso<LO) iso=LO; if(iso>HI) iso=HI;
+  $("#d").value=iso;
+  if(push) history.replaceState(null,"","?date="+iso);
+  load(iso);
+}
+async function load(iso){
+  const out=$("#out"), tiles=$("#tiles");
+  out.innerHTML='<div class="msg">loading '+iso+' …</div>'; tiles.hidden=true;
+  let d;
+  try{
+    const r=await fetch("days/"+iso+".json");
+    if(!r.ok) throw 0;
+    d=await r.json();
+  }catch(e){
+    out.innerHTML='<div class="msg"><b>'+iso+'</b> — no file.<br>'
+      +'GDELT published no archive for this day, or it falls outside '+LO+' … '+HI+'.<br>'
+      +'A missing day is not a quiet day. It is not zero.</div>';
+    return;
+  }
+  $("#tR").textContent=fmt(d.rows);
+  $("#tU").textContent=fmt(d.distinct_urls);
+  $("#tK").textContent=d.top.length;
+  tiles.hidden=false;
+  const max=d.top.length?d.top[0].n:1;
+  out.innerHTML='<ol>'+d.top.map(t=>
+    '<li><div class="d"><span>'+esc(t.d)+'</span><span>'+fmt(t.n)+' articles</span></div>'
+    +'<a href="'+esc(t.u)+'" target="_blank" rel="noopener noreferrer">'+esc(t.u)+'</a>'
+    +'<div class="m" style="width:'+Math.max(2,100*t.n/max).toFixed(1)+'%"></div></li>').join("")
+    +'</ol>';
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+
+$("#d").oninput=e=>go(e.target.value,true);
+$("#pv").onclick=()=>go(shift($("#d").value,-1),true);
+$("#nx").onclick=()=>go(shift($("#d").value,1),true);
+addEventListener("popstate",()=>go(qsDate(),false));
+go(qsDate(),false);
+</script>
+</body>
+</html>
