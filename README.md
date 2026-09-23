@@ -1,7 +1,7 @@
 # gdelt
 
 **What GDELT was reading on a given day.** One JSON per day, 2013-04-01 onward, holding that day's
-top source URLs.
+top source URLs — 250 of them, filterable in the page.
 
     https://nth-member.github.io/gdelt/?date=2021-09-26
 
@@ -11,13 +11,13 @@ GDELT recorded there; it answers *how much*, and says nothing about *what*. This
 
 ## The rule
 
-A single day resolves to roughly 19,000 distinct URLs, so a selection rule is unavoidable. It is
+A single day resolves to between 4,000 and 59,000 distinct URLs, so a selection rule is unavoidable. It is
 fixed once and applied to every day in the corpus:
 
     rank by NumArticles (column 34), summed per URL
     keep one URL per domain
     keep one URL per path
-    take the top 25
+    take the top 250
 
 **Nothing is chosen because it suits a position.** A criterion that selects the data must not also
 be the criterion that evidences it, so the rule is uniform, declared in advance, and blind to
@@ -25,7 +25,24 @@ anything outside the day it runs on.
 
 Both dedupe keys are needed. Domain alone leaves wire syndication in place: on 2021-09-26 the same
 AP story ran under `seattlepi.com` and `chron.com` — different domains, identical path — and would
-otherwise have taken two of the twenty-five slots.
+otherwise have taken two of the 250 slots.
+
+## Searching past the 250
+
+The published slice is 250 a day out of up to 59,000 — about 183 MB across the corpus. All of them,
+roughly 90 million URLs, come to ~13 GB, which cannot be committed or served to a browser. They are
+not lost, though: they sit in the archives, and one day parses in 0.19 seconds.
+
+    ./search.sh palestin                        the whole URL era
+    ./search.sh 'german.*election' 2021-09-01 2021-09-30
+    ./search.sh derail 2021-09-26 2021-09-26
+
+An extended regex, matched case-insensitively against the whole URL — which is a headline search in
+practice, because the slug carries the headline. A full year takes about 8 seconds on 14 jobs; the
+whole era, under two minutes. Nothing is stored and nothing is extracted.
+
+The page has its own filter, which sees only the 250 that day shipped; when nothing matches it says
+so and points at the rest rather than implying the day held nothing.
 
 ## What is and is not here
 
@@ -44,7 +61,8 @@ archive or rehost their contents — it records what was cited, not what it said
 ## Layout
 
     build.sh            corpus -> docs/days, resumable, ~4 min on 14 jobs
-    extract_one.sh      one archive -> one day's JSON
+    extract_one.sh      one archive -> one day's JSON;  TOP=n sets the depth
+    search.sh           keyword -> every matching URL, read from the corpus
     docs/index.html     the page, served by GitHub Pages
     docs/days/*.json    one file per day
 

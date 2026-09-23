@@ -9,12 +9,13 @@
 #   keep one URL per domain, and one per path -- wire syndication puts the same
 #                                       AP story under several mastheads at the
 #                                       identical path; both keys are needed
-#   take the top 25
+#   take the top TOP (default 250)
 #
 # The rule is uniform over every day in the corpus. Nothing is picked because it
 # looked relevant to a position: a criterion that selects the data must not also
 # be the criterion that evidences it.
 set -euo pipefail
+TOP="${TOP:-250}"
 f="$1"; out="$2"; b="${f##*/}"; d="${b:0:4}-${b:4:2}-${b:6:2}"
 [ -f "$out/$d.json" ] && exit 0
 
@@ -23,7 +24,7 @@ unzip -p "$f" | awk -F'\t' '
   { rows++ }
   END { for (u in a) printf "%d\t%s\n", a[u], u
         printf "#\t%d\t%d\t%d\n", rows, n, length(a) }
-' | sort -rn -k1,1 | awk -v D="$d" -v OUT="$out" '
+' | sort -rn -k1,1 | awk -v D="$d" -v OUT="$out" -v TOP="$TOP" '
   $1 == "#" { rows=$2; withurl=$3; distinct=$4; next }
   {
     url = $2
@@ -36,13 +37,13 @@ unzip -p "$f" | awk -F'\t' '
     if (dom in seen) next
     if (length(path) > 12 && (path in seenp)) next
     seen[dom] = 1; seenp[path] = 1
-    if (++k > 25) next
+    if (++k > TOP) next
     n[k] = $1; u[k] = url; g[k] = dom
   }
   END {
     printf "{\"date\":\"%s\",\"rows\":%d,\"rows_with_url\":%d,\"distinct_urls\":%d,\"top\":[",
            D, rows, withurl, distinct > (OUT "/" D ".json")
-    for (i = 1; i <= k && i <= 25; i++) {
+    for (i = 1; i <= k && i <= TOP; i++) {
       gsub(/\\/, "\\\\", u[i]); gsub(/"/, "\\\"", u[i])
       printf "%s{\"n\":%d,\"d\":\"%s\",\"u\":\"%s\"}", (i>1 ? "," : ""), n[i], g[i], u[i] \
              >> (OUT "/" D ".json")

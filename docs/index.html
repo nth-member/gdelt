@@ -42,8 +42,10 @@ a{color:var(--accent)}
   padding:14px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 label{display:block;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--muted);margin-bottom:5px}
-input[type=date]{font:inherit;font-family:ui-monospace,monospace;padding:7px 9px;
-  border:1px solid var(--axis);border-radius:8px;background:var(--plane);color:var(--ink)}
+input[type=date],input[type=search]{font:inherit;font-family:ui-monospace,monospace;
+  padding:7px 9px;border:1px solid var(--axis);border-radius:8px;
+  background:var(--plane);color:var(--ink);width:100%}
+.grow{flex:1 1 300px;min-width:220px}
 button{font:inherit;padding:7px 11px;border:1px solid var(--axis);border-radius:8px;
   background:var(--plane);color:var(--ink);cursor:pointer}
 button:hover{border-color:var(--muted)}
@@ -65,6 +67,7 @@ li a:hover{text-decoration:underline}
 li .m{height:3px;border-radius:2px;background:var(--bar);margin-top:7px;opacity:.5}
 .msg{background:var(--surface);border:1px solid var(--line);border-radius:12px;
   padding:22px;color:var(--ink-2);text-align:center}
+mark{background:var(--node);color:#fff;border-radius:3px;padding:0 1px}
 .foot{color:var(--muted);font-size:12px;margin-top:22px;line-height:1.6}
 .foot code{font-family:ui-monospace,monospace}
 </style>
@@ -73,23 +76,28 @@ li .m{height:3px;border-radius:2px;background:var(--bar);margin-top:7px;opacity:
 <div class="wrap">
 
 <h1>GDELT day sources</h1>
-<p class="sub">What GDELT was reading on a given day. Twenty-five links, ranked by how many
+<p class="sub">What GDELT was reading on a given day. Up to 250 links a day, ranked by how many
 articles carried the event, one per domain and one per path. The rule is the same for every day
 in the corpus — nothing here was chosen because it suited a position.</p>
 
 <div class="bar">
   <div>
     <label for="d">date</label>
-    <input type="date" id="d" min="2013-04-01" max="2026-09-20">
+    <input type="date" id="d" min="2013-04-01" max="2026-09-22">
   </div>
   <div><label>&nbsp;</label><button id="pv">← day</button></div>
   <div><label>&nbsp;</label><button id="nx">day →</button></div>
+  <div class="grow">
+    <label for="q">filter this day — matches the URL, so it matches the headline slug</label>
+    <input type="search" id="q" placeholder="palestin, election, derail…" autocomplete="off">
+  </div>
 </div>
 
 <div class="tiles" id="tiles" hidden>
   <div class="tile"><div class="k">event rows</div><div class="v" id="tR">—</div></div>
   <div class="tile"><div class="k">distinct URLs</div><div class="v" id="tU">—</div></div>
   <div class="tile"><div class="k">shown</div><div class="v" id="tK">—</div></div>
+  <div class="tile"><div class="k">matching</div><div class="v" id="tM">—</div></div>
 </div>
 
 <div id="out"></div>
@@ -106,7 +114,8 @@ in the corpus — nothing here was chosen because it suited a position.</p>
 </div>
 <script>
 const $=s=>document.querySelector(s);
-const LO="2013-04-01", HI="2026-09-20";
+const LO="2013-04-01", HI="2026-09-22";
+let DAY=null;
 const fmt=n=>n==null?"—":n.toLocaleString();
 
 function qsDate(){
@@ -125,7 +134,7 @@ function go(iso,push){
 }
 async function load(iso){
   const out=$("#out"), tiles=$("#tiles");
-  out.innerHTML='<div class="msg">loading '+iso+' …</div>'; tiles.hidden=true;
+  out.innerHTML='<div class="msg">loading '+iso+' …</div>'; tiles.hidden=true; DAY=null;
   let d;
   try{
     const r=await fetch("days/"+iso+".json");
@@ -141,17 +150,42 @@ async function load(iso){
   $("#tU").textContent=fmt(d.distinct_urls);
   $("#tK").textContent=d.top.length;
   tiles.hidden=false;
-  const max=d.top.length?d.top[0].n:1;
-  out.innerHTML='<ol>'+d.top.map(t=>
+  DAY=d; render();
+}
+
+/* The filter matches the whole URL, which is a headline search in practice:
+   the slug carries the headline. It sees only what this day shipped -- the
+   top 250 of up to 59,000. For the rest, search.sh reads the corpus itself. */
+function render(){
+  const out=$("#out"); if(!DAY) return;
+  const q=$("#q").value.trim().toLowerCase();
+  const rows=q ? DAY.top.filter(t=>t.u.toLowerCase().includes(q)
+                                  || t.d.toLowerCase().includes(q)) : DAY.top;
+  $("#tM").textContent = q ? rows.length : "—";
+  if(!rows.length){
+    out.innerHTML='<div class="msg">nothing in this day\u2019s top '+DAY.top.length
+      +' matches <b>'+esc(q)+'</b>.<br>It may still be in the other '
+      +fmt(DAY.distinct_urls-DAY.top.length)+' URLs GDELT recorded that day — '
+      +'those are searchable from the corpus with <code>search.sh</code>.</div>';
+    return;
+  }
+  const max=rows[0].n||1;
+  out.innerHTML='<ol>'+rows.map(t=>
     '<li><div class="d"><span>'+esc(t.d)+'</span><span>'+fmt(t.n)+' articles</span></div>'
-    +'<a href="'+esc(t.u)+'" target="_blank" rel="noopener noreferrer">'+esc(t.u)+'</a>'
+    +'<a href="'+esc(t.u)+'" target="_blank" rel="noopener noreferrer">'+mark(t.u,q)+'</a>'
     +'<div class="m" style="width:'+Math.max(2,100*t.n/max).toFixed(1)+'%"></div></li>').join("")
     +'</ol>';
+}
+function mark(u,q){
+  const e=esc(u); if(!q) return e;
+  const i=e.toLowerCase().indexOf(esc(q).toLowerCase());
+  return i<0 ? e : e.slice(0,i)+'<mark>'+e.slice(i,i+q.length)+'</mark>'+e.slice(i+q.length);
 }
 function esc(s){return String(s).replace(/[&<>"']/g,m=>
   ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 
 $("#d").oninput=e=>go(e.target.value,true);
+$("#q").oninput=render;
 $("#pv").onclick=()=>go(shift($("#d").value,-1),true);
 $("#nx").onclick=()=>go(shift($("#d").value,1),true);
 addEventListener("popstate",()=>go(qsDate(),false));
