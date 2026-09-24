@@ -44,11 +44,33 @@ whole era, under two minutes. Nothing is stored and nothing is extracted.
 The page has its own filter, which sees only the 250 that day shipped; when nothing matches it says
 so and points at the rest rather than implying the day held nothing.
 
+## Searching before 2013
+
+Before 2013-04-01 there are no URLs, but the events themselves are all there: the yearly and monthly
+archives carry the same first 57 columns as the daily ones — actors, places, CAMEO codes,
+Goldstein, tone, article counts. `search_events.sh` reads them.
+
+    ./search_events.sh nigeria 1985-08-20 1985-09-03
+    ./search_events.sh -r '14|18|19' 'lagos|abuja' 1993-06-01 1993-07-31
+    ./search_events.sh -c NGA -n . 1983-12-01 1984-01-31
+
+The pattern is matched case-insensitively against the two actor names and the three place names.
+`-r` filters on the CAMEO root code (`14` protest, `18|19` assault or fight), `-c` on either actor's
+country (CAMEO ISO-3), and `-n` prints one line per day over every day in the range — `0` where the
+day's archive holds no match, `NULL` where there is no archive. Output is tab-separated
+`DATE ROOT CODE GOLDSTEIN ARTICLES ACTOR1 ACTOR2 PLACE URL`, with URL empty before 2013-04-01.
+
+It defaults to 1979-01-01 .. 2013-03-31 and takes any range. The whole pre-2013 era takes about 45
+seconds on 14 jobs. The day is the one `revott`'s daily aggregate uses, so a result lines up with its
+field: before 2013-04-01 the date an event is attributed to, from 2013-04-01 the day its archive was
+ingested. A range spanning that date crosses from one quantity to the other.
+
 ## What is and is not here
 
 `SOURCEURL` is column 58 of GDELT's daily export files and **exists only from 2013-04-01**. The
 yearly and monthly archives before that date have 57 columns and carry no links at all, so no
-amount of work recovers a URL for a 1994 date. 92–98% of the values are real `http` URLs; the
+amount of work recovers a URL for a 1994 date. The events are there even so; see
+[Searching before 2013](#searching-before-2013). 92–98% of the values are real `http` URLs; the
 remainder are source names such as `BBC Monitoring`, and those are dropped.
 
 A day with no file is **not** a quiet day. GDELT never published 22 days in this range and two more
@@ -63,6 +85,7 @@ archive or rehost their contents — it records what was cited, not what it said
     build.sh            corpus -> docs/days, resumable, ~4 min on 14 jobs
     extract_one.sh      one archive -> one day's JSON;  TOP=n sets the depth
     search.sh           keyword -> every matching URL, read from the corpus
+    search_events.sh    actor / place / CAMEO -> matching events, any era
     docs/index.html     the page, served by GitHub Pages
     docs/days/*.json    one file per day
 
