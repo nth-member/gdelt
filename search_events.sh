@@ -111,6 +111,14 @@ fi
 # both would rewrite the regex's backslashes or break on a quote.
 export K="$KEY" R="$ROOT_RE" C="$CC" A="$f" B="$t"
 
+# Each archive's job writes its own file. Jobs run in parallel, and parallel
+# writers on one pipe interleave their buffered output mid-line -- the same
+# search came back different on every run -- so nothing is shared until all
+# of them have finished.
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+export TMP
+
 events() {
   printf '%s\n' "$list" | (cd "$CORPUS/files" && xargs -P "$JOBS" -n 1 bash -c '
     fn="$0"
@@ -133,8 +141,9 @@ events() {
                substr(d, 1, 4), substr(d, 5, 2), substr(d, 7, 2),
                $29, $27, $31, $34, $7, $17, $51, (NF >= 58 ? $58 : "")
       }
-    '"'"'
+    '"'"' > "$TMP/$fn.out"
   ')
+  cat "$TMP"/*.out
 }
 
 if [ "$PERDAY" -eq 1 ]; then

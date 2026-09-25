@@ -39,13 +39,21 @@ n=$(printf '%s\n' "$list" | grep -c . || true)
 [ "$n" -gt 0 ] || { echo "no archives in $FROM .. $TO" >&2; exit 1; }
 echo "searching $n days, $FROM .. $TO, for /$KEY/i" >&2
 
+# Each day's job writes its own file, joined only once all have finished:
+# parallel jobs sharing one pipe interleave their buffered output mid-line, and
+# the same search came back different on every run.
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+export TMP
+
 printf '%s\n' "$list" | (cd "$CORPUS/files" && xargs -P "$JOBS" -n 1 bash -c '
   f="$0"; d="${f:0:4}-${f:4:2}-${f:6:2}"
   unzip -p "$f" | awk -F"\t" -v D="$d" -v K="'"$KEY"'" '"'"'
     $58 ~ /^https?:\/\// && tolower($58) ~ tolower(K) { a[$58] += $34 }
     END { for (u in a) { split(u, p, "/"); dom = p[3]; sub(/^www\./, "", dom)
                          printf "%s\t%d\t%s\t%s\n", D, a[u], dom, u } }
-  '"'"'
-') | sort -t$'\t' -k1,1 -k2,2nr
+  '"'"' > "$TMP/$f.out"
+')
+cat "$TMP"/*.out | sort -t$'\t' -k1,1 -k2,2nr
 
 echo "done" >&2
