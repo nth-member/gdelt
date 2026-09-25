@@ -15,7 +15,11 @@
 #
 #   -r ROOT   CAMEO root code, a regex anchored to the whole code:
 #             '14' protest, '18|19' assault or fight, '0[1-5]' cooperation
-#   -c CC     actor country, CAMEO ISO-3 (NGA, USA, GBR); either actor matches
+#   -c CC     actor country, CAMEO ISO-3 (NGA, USA, GBR); either actor matches.
+#             Read from the country field and from the actor code's first three
+#             letters, because GDELT fills the field unevenly: Romania is coded
+#             ROU with the field blank, Taiwan's field is blank in older years.
+#             Codes in CAMEO_CODES.md.
 #   -n        one line per day, DATE and COUNT, over every day in the range
 #
 # Why this exists. Before 2013-04-01 GDELT's archives carry the same 57 columns
@@ -122,7 +126,8 @@ events() {
         d = (fd != "") ? fd : $2
         if (d < a || d > b) next
         if (r != "" && $29 !~ r) next
-        if (c != "" && $8 != c && $18 != c) next
+        if (c != "" && $8 != c && $18 != c &&
+            substr($6, 1, 3) != c && substr($16, 1, 3) != c) next
         if (k != "." && tolower($7 "\t" $17 "\t" $37 "\t" $44 "\t" $51) !~ k) next
         printf "%s-%s-%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n",
                substr(d, 1, 4), substr(d, 5, 2), substr(d, 7, 2),

@@ -56,9 +56,12 @@ Goldstein, tone, article counts. `search_events.sh` reads them.
 
 The pattern is matched case-insensitively against the two actor names and the three place names.
 `-r` filters on the CAMEO root code (`14` protest, `18|19` assault or fight), `-c` on either actor's
-country (CAMEO ISO-3), and `-n` prints one line per day over every day in the range — `0` where the
+country (CAMEO ISO-3, read from the actor code as well as the country field, which GDELT fills
+unevenly), and `-n` prints one line per day over every day in the range — `0` where the
 day's archive holds no match, `NULL` where there is no archive. Output is tab-separated
 `DATE ROOT CODE GOLDSTEIN ARTICLES ACTOR1 ACTOR2 PLACE URL`, with URL empty before 2013-04-01.
+
+Every code, and where GDELT's own lookup is wrong about them, is in [`CAMEO_CODES.md`](CAMEO_CODES.md).
 
 It defaults to 1979-01-01 .. 2013-03-31 and takes any range. The whole pre-2013 era takes about 45
 seconds on 14 jobs. The day is the one `revott`'s daily aggregate uses, so a result lines up with its
@@ -86,6 +89,7 @@ archive or rehost their contents — it records what was cited, not what it said
     extract_one.sh      one archive -> one day's JSON;  TOP=n sets the depth
     search.sh           keyword -> every matching URL, read from the corpus
     search_events.sh    actor / place / CAMEO -> matching events, any era
+    CAMEO_CODES.md      the -r and -c codes, checked against the corpus
     docs/index.html     the page, served by GitHub Pages
     docs/days/*.json    one file per day
 
