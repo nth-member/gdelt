@@ -22,3 +22,11 @@ echo "reading $n daily archives from $CORPUS/files ($JOBS jobs)"
 ( cd "$CORPUS/files" && ls 20*.export.CSV.zip \
   | xargs -P "$JOBS" -n 1 -I{} "$HERE/extract_one.sh" {} "$OUT" )
 echo "days written: $(ls "$OUT" | wc -l)   size: $(du -sh "$OUT" | cut -f1)"
+
+# The page reads its date range from here rather than carrying it, so a new day
+# is reachable the moment it is built.
+# (A glob, not `ls | head`: under pipefail, head closing the pipe early kills
+# the script silently.)
+days=("$OUT"/*.json); lo="${days[0]##*/}"; hi="${days[-1]##*/}"
+printf '{"lo":"%s","hi":"%s","days":%d}\n' "${lo%.json}" "${hi%.json}" "${#days[@]}" \
+  > "$HERE/docs/range.json"

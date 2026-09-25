@@ -83,7 +83,7 @@ in the corpus — nothing here was chosen because it suited a position.</p>
 <div class="bar">
   <div>
     <label for="d">date</label>
-    <input type="date" id="d" min="2013-04-01" max="2026-09-22">
+    <input type="date" id="d" min="2013-04-01">
   </div>
   <div><label>&nbsp;</label><button id="pv">← day</button></div>
   <div><label>&nbsp;</label><button id="nx">day →</button></div>
@@ -114,7 +114,10 @@ in the corpus — nothing here was chosen because it suited a position.</p>
 </div>
 <script>
 const $=s=>document.querySelector(s);
-const LO="2013-04-01", HI="2026-09-22";
+/* The last day is read from range.json, which build.sh rewrites on every
+   refresh. It was once written here by hand, and the page then refused every
+   day that arrived after it. */
+let LO="2013-04-01", HI="9999-12-31";
 let DAY=null;
 const fmt=n=>n==null?"—":n.toLocaleString();
 
@@ -189,7 +192,9 @@ $("#q").oninput=render;
 $("#pv").onclick=()=>go(shift($("#d").value,-1),true);
 $("#nx").onclick=()=>go(shift($("#d").value,1),true);
 addEventListener("popstate",()=>go(qsDate(),false));
-go(qsDate(),false);
+fetch("range.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null)
+  .then(g=>{ if(g&&g.hi){ LO=g.lo; HI=g.hi; $("#d").min=LO; $("#d").max=HI; }
+             go(qsDate(),false); });
 </script>
 </body>
 </html>
