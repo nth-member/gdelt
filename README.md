@@ -50,16 +50,34 @@ Before 2013-04-01 there are no URLs, but the events themselves are all there: th
 archives carry the same first 57 columns as the daily ones — actors, places, CAMEO codes,
 Goldstein, tone, article counts. `search_events.sh` reads them.
 
-    ./search_events.sh nigeria 1985-08-20 1985-09-03
+    ./search_events.sh nigeria 1985-08-20 1985-09-03            the events, readable
+    ./search_events.sh -s -c GEO . 2008-08-01 2008-08-31        the range summarised
     ./search_events.sh -r '14|18|19' 'lagos|abuja' 1993-06-01 1993-07-31
-    ./search_events.sh -c NGA -n . 1983-12-01 1984-01-31
+    ./search_events.sh -c NGA -n . 1983-12-01 1984-01-31        per-day counts
 
 The pattern is matched case-insensitively against the two actor names and the three place names.
 `-r` filters on the CAMEO root code (`14` protest, `18|19` assault or fight), `-c` on either actor's
 country (CAMEO ISO-3, read from the actor code as well as the country field, which GDELT fills
-unevenly), and `-n` prints one line per day over every day in the range — `0` where the
-day's archive holds no match, `NULL` where there is no archive. Output is tab-separated
-`DATE ROOT CODE GOLDSTEIN ARTICLES ACTOR1 ACTOR2 PLACE URL`, with URL empty before 2013-04-01.
+unevenly).
+
+By default each distinct event is written out in words. GDELT often records one event several
+times; those records are merged, with their articles, sources and mentions summed. Each entry reads
+as who did what to whom, and where, with its weight:
+
+    2008-08-08  MIKHEIL SAAKASHVILI (government, Georgia) → RUSSIA
+                criticize or denounce [111 · verbal conflict]
+                at Moscow, Moskva, Russia (55.75, 37.62)
+                38 articles · 4 sources · 47 mentions · tone +5.2 · Goldstein -2.0 · recorded 2×
+
+The words come from GDELT's own lookup tables in `cameo/`. `-s` summarises the whole range:
+- volume and article-weighted tone;
+- the four quad classes;
+- the event types, actors, actor pairs and places carrying the most articles;
+- the busiest days, with their leading events.
+
+`-n` prints one line per day over every day in the range: `0` where the archive holds no match,
+`NULL` where there is no archive. `-t` prints the raw rows, every field tab-separated, for `cut`, `sort`
+and `awk`.
 
 Every code, and where GDELT's own lookup is wrong about them, is in [`CAMEO_CODES.md`](CAMEO_CODES.md).
 
@@ -89,6 +107,8 @@ archive or rehost their contents — it records what was cited, not what it said
     extract_one.sh      one archive -> one day's JSON;  TOP=n sets the depth
     search.sh           keyword -> every matching URL, read from the corpus
     search_events.sh    actor / place / CAMEO -> matching events, any era
+    events_report.py    those events in words, merged, or summarised (-s)
+    cameo/              GDELT's CAMEO lookup tables: event codes, actor types, countries
     CAMEO_CODES.md      the -r and -c codes, checked against the corpus
     docs/index.html     the page, served by GitHub Pages
     docs/days/*.json    one file per day
