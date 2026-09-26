@@ -69,10 +69,20 @@ as who did what to whom, and where, with its weight:
                 at Moscow, Moskva, Russia (55.75, 37.62)
                 38 articles · 4 sources · 47 mentions · tone +5.2 · Goldstein -2.0 · recorded 2×
 
+Each actor carries everything GDELT coded for it:
+- its types (government, military, rebels, media and so on);
+- a known group (the UN, NATO, Al Qaeda, ECOWAS and so on);
+- ethnicity and religion;
+- country.
+
+Where GDELT places an actor somewhere other than the action (a statement from Maiduguri about
+Chibok), the entry says so. Every location gives its precision: city, state or province, or country.
+Each event is marked as the article's lead or as mentioned in passing, and `-R` keeps only the leads.
 The words come from GDELT's own lookup tables in `cameo/`. `-s` summarises the whole range:
-- volume and article-weighted tone;
+- volume and article-weighted tone, and the share of lead events;
 - the four quad classes;
 - the event types, actors, actor pairs and places carrying the most articles;
+- the known groups, religions and ethnicities coded on the actors;
 - the busiest days, with their leading events.
 
 `-n` prints one line per day over every day in the range: `0` where the archive holds no match,
@@ -108,7 +118,7 @@ archive or rehost their contents — it records what was cited, not what it said
     search.sh           keyword -> every matching URL, read from the corpus
     search_events.sh    actor / place / CAMEO -> matching events, any era
     events_report.py    those events in words, merged, or summarised (-s)
-    cameo/              GDELT's CAMEO lookup tables: event codes, actor types, countries
+    cameo/              GDELT's CAMEO lookup tables: events, actor types, countries, groups, ethnicities, religions
     CAMEO_CODES.md      the -r and -c codes, checked against the corpus
     docs/index.html     the page, served by GitHub Pages
     docs/days/*.json    one file per day

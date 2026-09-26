@@ -26,6 +26,7 @@
 #             articles, and the busiest days with their leading events
 #   -n        one line per day, DATE and COUNT, over every day in the range
 #   -t        the raw rows, tab-separated, every field (for cut, sort, awk)
+#   -R        root events only: each article's lead event, not what it mentions in passing
 #
 # Why this exists. Before 2013-04-01 GDELT's archives carry the same 57 columns
 # as after, minus SOURCEURL, so search.sh -- which reads URLs -- sees nothing
@@ -56,6 +57,10 @@
 #   DATE SQLDATE ROOT CODE QUAD GOLDSTEIN MENTIONS SOURCES ARTICLES TONE
 #   A1CODE A1NAME A1COUNTRY A1TYPE A2CODE A2NAME A2COUNTRY A2TYPE
 #   PLACE GEOCOUNTRY LAT LON URL
+#   A1TYPE2 A1TYPE3 A1GROUP A1ETHNIC A1RELIGION1 A1RELIGION2
+#   A2TYPE2 A2TYPE3 A2GROUP A2ETHNIC A2RELIGION1 A2RELIGION2
+#   ISROOT BASECODE A1GEO A1GEOTYPE A1LAT A1LON A2GEO A2GEOTYPE A2LAT A2LON
+#   GEOTYPE ADM1 FEATUREID DATEADDED
 #
 # DATE is the series day (see above); SQLDATE is the date GDELT gives the event
 # itself. URL is empty before 2013-04-01.
@@ -63,14 +68,15 @@ set -euo pipefail
 
 usage(){ sed -n '4,10p' "$0" | sed 's/^# \?//' >&2; exit 2; }
 
-ROOT_RE="" CC="" PERDAY=0 MODE=read
-while getopts "r:c:nsth" o; do
+ROOT_RE="" CC="" PERDAY=0 MODE=read ROOTONLY=0
+while getopts "r:c:nstRh" o; do
   case "$o" in
     r) ROOT_RE="$OPTARG" ;;
     c) CC="${OPTARG^^}" ;;
     n) PERDAY=1 ;;
     s) MODE=summary ;;
     t) MODE=raw ;;
+    R) ROOTONLY=1 ;;
     *) usage ;;
   esac
 done
@@ -125,7 +131,7 @@ fi
 
 # Passed through the environment, not spliced into the awk program or `-v`:
 # both would rewrite the regex's backslashes or break on a quote.
-export K="$KEY" R="$ROOT_RE" C="$CC" A="$f" B="$t"
+export K="$KEY" R="$ROOT_RE" C="$CC" A="$f" B="$t" RO="$ROOTONLY"
 
 # Each archive's job writes its own file. Jobs run in parallel, and parallel
 # writers on one pipe interleave their buffered output mid-line -- the same
@@ -150,15 +156,17 @@ events() {
         d = (fd != "") ? fd : $2
         if (d < a || d > b) next
         if (r != "" && $29 !~ r) next
+        if (ENVIRON["RO"] == "1" && $26 != "1") next
         if (c != "" && $8 != c && $18 != c &&
             substr($6, 1, 3) != c && substr($16, 1, 3) != c) next
         if (k != "." && tolower($7 "\t" $17 "\t" $37 "\t" $44 "\t" $51) !~ k) next
-        printf "%s-%s-%s\t%s-%s-%s\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+        printf "%s-%s-%s\t%s-%s-%s\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
                substr(d, 1, 4), substr(d, 5, 2), substr(d, 7, 2),
                substr($2, 1, 4), substr($2, 5, 2), substr($2, 7, 2),
                $29, $27, $30, $31, $32, $33, $34, $35,
                $6, $7, $8, $13, $16, $17, $18, $23,
-               $51, $52, $54, $55, (NF >= 58 ? $58 : "")
+               $51, $52, $54, $55, (NF >= 58 ? $58 : ""),
+               $14 "\t" $15 "\t" $9 "\t" $10 "\t" $11 "\t" $12 "\t" $24 "\t" $25 "\t" $19 "\t" $20 "\t" $21 "\t" $22 "\t" $26 "\t" $28 "\t" $37 "\t" $36 "\t" $40 "\t" $41 "\t" $44 "\t" $43 "\t" $47 "\t" $48 "\t" $50 "\t" $53 "\t" $56 "\t" $57
       }
     '"'"' > "$TMP/$fn.out"
   ')
