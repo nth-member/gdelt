@@ -122,8 +122,22 @@ archive or rehost their contents — it records what was cited, not what it said
     CAMEO_CODES.md      the -r and -c codes, checked against the corpus
     docs/index.html     the page, served by GitHub Pages
     docs/days/*.json    one file per day
+    docs/range.json     the first and last day, which the page reads its range from
+
+It is kept current by `revott`'s `gdelt/refresh.sh`, which rebuilds new days incrementally, commits
+`docs/days` and `docs/range.json`, and pushes them with `--push`.
 
 The corpus is never committed and never extracted; archives stream through `unzip -p`.
 
     {"date":"2021-09-26","rows":104784,"rows_with_url":104784,"distinct_urls":18741,
      "top":[{"n":10723,"d":"clickondetroit.com","u":"https://…"}, …]}
+
+## The nth-member sites
+
+| site | repository | what it is |
+|---|---|---|
+| https://nth-member.github.io/revott/ | nth-member/revott | REVOTT atop GDELT: the field at every node of an instance |
+| https://nth-member.github.io/gdelt/ | nth-member/gdelt | what GDELT was reading on a given day |
+| https://nth-member.github.io/member/ | nth-member/member | the nth member: REVOTT's numerator, its introspection and its journal |
+| https://nth-member.github.io/gematria/ | nth-member/gematria | H-Gematria/ASCII: the two name-value programs in the browser |
+| https://nth-member.github.io/alien-corridor/ | nth-member/alien-corridor | the Alien Corridor Support System (MDQNM engine) in the browser |
